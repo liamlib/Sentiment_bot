@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+import csv
 
 page_num = 15
 url = 'https://www.gamespot.com/games/reviews/'
@@ -69,15 +70,34 @@ def aggregateText(url):
     soup = BeautifulSoup(response.text, 'html.parser')
     title = soup.select_one("h1.kubrick-info__title")
     raw_title = title.get_text(strip=True)
-    # raw_content = soup.select("div.js-content-entity-body")
     paragraphs = soup.find_all('p', attrs={"dir":"ltr"})
 
     results = " ".join(paragraph.get_text(strip=True) for paragraph in paragraphs)
     return raw_title, results
 
 
-res = aggregateText('https://www.gamespot.com/reviews/hot-wheels-unleashed-2-turbocharged-review-2-hot-2-wheels/1900-6418137/')
-data = {"Title": [res[0]], "Content" : [res[1]]}
-df = pd.DataFrame(data)
 
-print(df)
+def createDataframe():
+    data_frame = []
+    with open('reviews.csv', mode='r') as file:
+        csv_reader = csv.reader(file)
+
+        for line_num, row in enumerate(csv_reader, start=1):
+            try:
+                url = row[-1]
+                print(f"Processing line {line_num}: {url}")
+                
+                res = aggregateText(url)
+                if res[0] is None or res[1] is None:
+                    print(f"Skipping line {line_num} due to errors.")
+                    continue
+                
+                data_frame.append({"Title": res[0], "Content": res[1]})
+            except Exception as e:
+                print(f"Unexpected error on line {line_num}: {e}")
+
+    df = pd.DataFrame(data_frame)
+    df.to_csv('aggregated_reviews.csv', index=False)
+    print(df)
+
+createDataframe() 

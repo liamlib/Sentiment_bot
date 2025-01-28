@@ -3,14 +3,20 @@ from datasets import Dataset
 from transformers import RobertaForSequenceClassification, RobertaTokenizer, Trainer, TrainingArguments
 
 # Load your data
-data = pd.read_csv("prepared_reviews.csv")
+data = pd.read_csv("../data/prepared_reviews.csv")
 
-data['label'] = data['label'].apply(lambda x: 1 if x >= 7 else (0 if x <= 4 else None))
+label_mapping = {'positive': 1, 'neutral': 0, 'negative': -1}
+data['label'] = data['label'].map(label_mapping)
+
+data['label'] = data['label'].apply(lambda x: 1 if x == 1 else (0 if x == -1 else None))
+
+# data['label'] = data['label'].apply(lambda x: 1 if x >= 7 else (0 if x <= 4 else None))
 data = data.dropna(subset=['label'])
 
-data = data[['review', 'label']].dropna() 
+data = data[['review', 'label']].dropna()
 data['review'] = data['review'].astype(str)
 data['label'] = data['label'].astype(int)
+
 
 dataset = Dataset.from_pandas(data)
 
@@ -63,4 +69,4 @@ results = trainer.evaluate()
 print("Evaluation Results:", results)
 
 model.save_pretrained("./fine_tuned_roberta")
-tokenizer.save_pretrained("./fine_tuned_roberta")
+tokenizer.save_pretrained("./fine_tuned_roberta")     
